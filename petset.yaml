@@ -1,0 +1,77 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    component: rabbitmq
+    name: rmq
+  name: rmq
+spec:
+  clusterIP: None
+  ports:
+  - name: epmd
+    port: 4369
+    protocol: TCP
+    targetPort: 4369
+  - name: amqp
+    port: 5672
+    protocol: TCP
+    targetPort: 5672
+  - name: erlang-distribute
+    port: 25672
+    protocol: TCP
+    targetPort: 25672
+  selector:
+    app: taskQueue
+    component: rabbitmq
+  sessionAffinity: None
+  type: ClusterIP
+---
+apiVersion: apps/v1alpha1
+kind: PetSet
+metadata:
+  labels:
+    component: rabbitmq
+  name: rmq
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: taskQueue
+      component: rabbitmq
+  serviceName: rmq
+  template:
+    metadata:
+      annotations:
+        pod.alpha.kubernetes.io/initialized: "true"
+      creationTimestamp: null
+      labels:
+        app: taskQueue
+        component: rabbitmq
+    spec:
+      containers:
+      - env:
+        - name: RABBITMQ_ERLANG_COOKIE
+          value: COOKIE
+        - name: RABBITMQ_USE_LONGNAME
+          value: "true"
+        - name: CLUSTERED
+          value: "true"
+        - name: CLUSTER_WITH
+          value: "$CLUSTER_WITH"
+        image: flant/kube-rabbit-cluster
+        imagePullPolicy: Always
+        name: rmq
+        volumeMounts:
+          - name: rabbit-persistent-storage
+            mountPath: /var/lib/rabbitmq
+        ports:
+        - containerPort: 5672
+          protocol: TCP
+        - containerPort: 25672
+          protocol: TCP
+        - containerPort: 4369
+          protocol: TCP
+      volumes:
+        - name: rabbit-persistent-storage
+          hostPath:
+            path: /data/rmq

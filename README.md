@@ -2,63 +2,22 @@ Docker images to run RabbitMQ cluster. It extends the official image with a rabb
 
 # Building
 
-Once you clone the project locally use [captain](https://github.com/harbur/captain) to build the image or do with docker:
+Once you clone the project locally to build the image with docker:
 
 ```
-docker build -t harbur/rabbitmq-cluster .
+docker build -t flant/kube-rabbit-cluster .
 ```
 
-# Running with docker-compose
-
-If you want to run the cluster on one machine use [docker-compose](https://github.com/docker/compose/)
+# Running with kubernetes petset
 
 ```
-docker-compose up -d
+NAMESPACE=mq
+CLUSTER_WITH=rmq-0.rmq.$NAMESPACE.svc.cluster.local 
+cat petset.yaml | envsubst | kubectl --namespace $NAMESPACE create -f -
 ```
 
-By default 3 nodes are started up this way:
-
-```
-rabbit1:
-  image: harbur/rabbitmq-cluster
-  hostname: rabbit1
-  environment:
-    - ERLANG_COOKIE=abcdefg
-  ports:
-    - "5672:5672"
-    - "15672:15672"
-rabbit2:
-  image: harbur/rabbitmq-cluster
-  hostname: rabbit2
-  links:
-    - rabbit1
-  environment:
-    - ERLANG_COOKIE=abcdefg
-    - CLUSTER_WITH=rabbit1
-    - ENABLE_RAM=true
-    - RAM_NODE=true
-  ports:
-    - "5673:5672"
-    - "15673:15672"
-rabbit3:
-  image: harbur/rabbitmq-cluster
-  hostname: rabbit3
-  links:
-    - rabbit1
-    - rabbit2
-  environment:
-    - ERLANG_COOKIE=abcdefg
-    - CLUSTER_WITH=rabbit1
-  ports:
-    - "5674:5672"
-```
-
-If needed, additional nodes can be added to this file.
+If needed, additional nodes can be added by changing replicas num into this file.
 
 Once cluster is up:
-* The management console can be accessed at `http://hostip:15672`
-* The connection host should look like this: `hostip:5672,hostip:5673,hostip:5674`
-
-# Credits
-
-* Inspired by https://github.com/bijukunjummen/docker-rabbitmq-cluster
+* The management console can be accessed at `http://rmq.$NAMESPACE.svc.cluster.local:15672/`
+* The connection DSN should look like this: `amqp://rmq.$NAMESPACE.svc.cluster.local/vhost`

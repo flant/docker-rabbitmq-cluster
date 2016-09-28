@@ -18,5 +18,11 @@ if [ "$ERLANG_COOKIE" ]; then
     fi
 fi
 
+export HOSTNAME=$(hostname -f)
+
+if [ ! -z $CLUSTER_WITH -a "$CLUSTER_WITH" == "$HOSTNAME" ]; then
+  unset CLUSTER_WITH
+fi;
+
 chown rabbitmq:rabbitmq /var/lib/rabbitmq
 exec gosu rabbitmq ./docker-entrypoint.sh "$@"
